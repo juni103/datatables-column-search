@@ -1,3 +1,7 @@
+/*
+ * 
+ * @author Juandi Iqbal
+ */
 $(function(){
     'use strict'
     
