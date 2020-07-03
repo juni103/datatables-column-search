@@ -2,7 +2,32 @@
  * 
  * @author Junaid Iqbal
  */
-$(function(){
+(function(factory){
+    if(typeof define === 'function' && define.amd) {
+	// AMD
+	define(['jquery', 'datatables.net'], function($){
+	    return factory($, window, document);
+	});
+    }
+    else if(typeof exports === 'object') {
+	// CommonJS
+	module.exports = function(root, $) {
+	    if(!root) {
+		root = window;
+	    }
+	    
+	    if(!$ || !$.fn.dataTable) {
+		$ = require('datatables.net')(root, $).$;
+	    }
+	    
+	    return factory($, root, root.document);
+	};
+    }
+    else {
+	// Browser
+	factory( jQuery, window, document );
+    }
+}(function($, window, document) {
     'use strict'
     
     var DataTable = $.fn.dataTable;
@@ -63,7 +88,8 @@ $(function(){
 		});
 		
 		if(hasColumnSearch) {
-		    $(ctx.nTHead).prepend($searchHeader);
+//		    $(ctx.nTHead).prepend($searchHeader);
+		    $(ctx.nTHead.lastChild).before($searchHeader);
 		    
 		    //set indexes for references
 		    that.iDisplayIndexes = that.pluck("idx");
@@ -80,26 +106,28 @@ $(function(){
 			    var fixedColumnDrawCallback = that.s.ctx._oFixedColumns.s.fnDrawCallback;
 			    
 			    var fixedColumnDrawCallbackForPlugin = function(left, right) {
-				var sort = that.s.ctx.aaSorting;
-				var previousFixedSumRow = $("thead tr.dt-column-search", left.header);
+				var sort = that.s.ctx.aaSorting,
+				    previousFixedSumRow = $("thead tr.dt-column-search", left.header),
+				    visibleColumnIndex = 0,
+				    fixedSearchColumnsRow = $('<tr class="dt-column-search"/>');
 				
 				if(previousFixedSumRow.length) {
 				    previousFixedSumRow.remove();
-				    $("thead tr:not(.dt-column-search) th", left.header).removeClass("sorting_asc sorting_desc")
+				    $("thead tr th.sorting", left.header).removeClass("sorting_asc sorting_desc");
 				}
-
-				var visibleColumnIndex = 0;
-				var fixedSearchColumnsRow = $('<tr class="dt-column-search"/>');
 				
 				for(var i = 0; i < this.s.iLeftColumns; i++) {
 				    if(this.s.dt.aoColumns[i].bVisible) {
 					if(sort.length && i == sort[0][0]) {
 					    var fixedSortColumn = $('tr:last-child th', left.header).eq(visibleColumnIndex);
+					    
 					    if(fixedSortColumn.length) {
 						fixedSortColumn.addClass("sorting_"+ sort[0][1]);
 					    }
 					}
 					var fixedSearchColumn = $("th", $searchHeader).eq(visibleColumnIndex).clone(true, false);
+					
+					$('input', fixedSearchColumn).attr('data-old-value', this.s.dt.aoPreSearchCols[i]["sSearch"]);
 					
 					if(that.indexes.includes(i)) {
 					    if(fixedSearchColumn.children().length) {
@@ -114,7 +142,7 @@ $(function(){
 				    }
 				}
 				
-				$("thead", left.header).prepend(fixedSearchColumnsRow);
+				$("thead tr:last-child", left.header).before(fixedSearchColumnsRow);
 				
 				$("tr", this.dom.header).each(function(index, row){
 				    $("thead tr", left.header).eq(index).height($(row).height())
@@ -180,7 +208,7 @@ $(function(){
 		    
 		    field.addClass('form-control h-auto p-1');
 		    field.attr('data-old-value', fieldValue);
-		    field.val(fieldValue)
+		    field.val(fieldValue);
 
 		    if(columnType !== "select") {
 			field.addClass('form-control h-auto p-1 pl-2 pr-2');
@@ -210,7 +238,7 @@ $(function(){
 		    value = searchColumnData.valueOnChange(value, e, searchColumnData);
 		}
 		
-		if($.isFunction(searchColumnData.onChange)) {
+		if( $.isFunction(searchColumnData.onChange) ) {
 		    isValueChangesd = searchColumnData.onChange(value, e, searchColumnData);
 		} else {
 		    isValueChangesd = (oldValue !== value);
@@ -218,7 +246,13 @@ $(function(){
 		
 		if(isValueChangesd) {
 		    $el.data('oldValue', value);
-		    that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
+		    $('input', searchColumnData.nTh).val(value);
+		    
+		    if( $.isFunction(searchColumnData.searchHandler) ) {
+			searchColumnData.searchHandler(value, oldValue, dataIndex, that.data, that.s.dt);
+		    } else {
+			that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
+		    }
 		}
 	    },
 	    
@@ -297,4 +331,4 @@ $(function(){
     
     $.fn.dataTable.ColumnSearch = ColumnSearch;
     $.fn.DataTable.ColumnSearch = ColumnSearch;
-});
+}))
