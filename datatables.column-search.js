@@ -1,6 +1,6 @@
 /*
  * 
- * @author Juandi Iqbal
+ * @author Junaid Iqbal
  */
 $(function(){
     'use strict'
