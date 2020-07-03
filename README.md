@@ -49,5 +49,11 @@ Other than boolean option
          <b>ex:</b> dataTable.columnSearch().updateSearchColumn(<columnDataSrc>, ["All", "Option1", "Option2", "Option3"])
        </td>
     </tr>
+     <tr>
+       <th>searchHandler</th>
+       <td><b>params: (value, oldValue, dataIndex, columnSearchData, dt)</b></br>
+         This callback can be used to handle search manually
+       </td>
+    </tr>
   </tbody>
 </table>
