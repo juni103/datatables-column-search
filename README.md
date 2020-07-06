@@ -44,7 +44,7 @@ Other than boolean option
     </tr>
      <tr>
        <th>searchHandler</th>
-       <td><b>params: (value, oldValue, dataIndex, columnSearchData, dt)</b></br>
+       <td><b>params: (value, oldValue, dataIndex, columnSearchData, columnsSearchData, dt)</b></br>
          This callback can be used to handle search manually
        </td>
     </tr>
