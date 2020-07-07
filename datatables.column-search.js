@@ -55,6 +55,13 @@
 			ctx = this.s.ctx,
 			$searchHeader = $('<tr class="dt-column-search"/>');
 		
+		var renderedColumnSearchRow = $('thead tr.dt-column-search', ctx.nTableWrapper);
+		
+		if(renderedColumnSearchRow.length) {
+		    $searchHeader = renderedColumnSearchRow;
+		    $searchHeader.empty();
+		}
+		
 		var hasColumnSearch = false;
 		
 		dt.columns(":visible").every(function(column, row, index){
@@ -113,16 +120,22 @@
 				
 				if(previousFixedSumRow.length) {
 				    previousFixedSumRow.remove();
-				    $("thead tr th.sorting", left.header).removeClass("sorting_asc sorting_desc");
+				    $("thead tr th", left.header).removeClass("sorting_asc sorting_desc");
 				}
 				
 				for(var i = 0; i < this.s.iLeftColumns; i++) {
 				    if(this.s.dt.aoColumns[i].bVisible) {
-					if(sort.length && i == sort[0][0]) {
+					var columnClasses = this.s.dt.aoColumns[i].nTh.classList;
+					
+					if(columnClasses.contains('sorting_asc') || columnClasses.contains('sorting_desc')) {
 					    var fixedSortColumn = $('tr:last-child th', left.header).eq(visibleColumnIndex);
 					    
 					    if(fixedSortColumn.length) {
-						fixedSortColumn.addClass("sorting_"+ sort[0][1]);
+						if(columnClasses.contains('sorting_asc')) {
+						    fixedSortColumn.addClass("sorting_asc");
+						} else if(columnClasses.contains('sorting_desc')) {
+						    fixedSortColumn.addClass("sorting_desc");
+						}
 					    }
 					}
 					var fixedSearchColumn = $("th", $searchHeader).eq(visibleColumnIndex).clone(true, false);
@@ -249,7 +262,7 @@
 		    $('input', searchColumnData.nTh).val(value);
 		    
 		    if( $.isFunction(searchColumnData.searchHandler) ) {
-			searchColumnData.searchHandler(value, oldValue, dataIndex, that.data, that.s.dt);
+			searchColumnData.searchHandler(value, oldValue, dataIndex, searchColumnData, that.data, that.s.dt);
 		    } else {
 			that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
 		    }
@@ -331,4 +344,4 @@
     
     $.fn.dataTable.ColumnSearch = ColumnSearch;
     $.fn.DataTable.ColumnSearch = ColumnSearch;
-}))
+}));
