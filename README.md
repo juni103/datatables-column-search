@@ -17,6 +17,12 @@ Other than boolean option
          types are <b>string | number | select | dateTime</b>
        </td>
     </tr>
+     <tr>
+       <th>immediateSearch</th>
+       <td><b>boolean</b> To restrict immidiate colum search application on change or focus out.<br/>
+        Usage: columnSearch.immediateSearch: true|false
+       </td>
+    </tr>
   </tbody>
 </table>
 
