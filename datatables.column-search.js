@@ -32,7 +32,7 @@
     
     var DataTable = $.fn.dataTable;
     
-    var ColumnSearch = function(settings){
+    var ColumnSearch = function(settings, options){
 	var dt = new DataTable.Api(settings);
 	this.s = {
 		dt: dt,
@@ -42,6 +42,10 @@
 	if(this.s.ctx.columnSearch) {
 	    return;
 	}
+	
+	this.s.immediateSearch = true;
+	
+	$.extend(this.s, options);
 	
 	settings.columnSearch = this;
 	
@@ -101,6 +105,7 @@
 		    //set indexes for references
 		    that.iDisplayIndexes = that.pluck("idx");
 		    that.iDTColumnIndexes = that.pluck("dtColumnIndex");
+		    that.chachedSearchableColumns = []
 		    
 		    $(ctx.nTableWrapper).on("change", 'thead tr.dt-column-search th input[type="text"], thead tr.dt-column-search th input[type="number"], thead tr.dt-column-search th select', function(e) {
 			that.onInputChangeEvent(e);
@@ -263,8 +268,12 @@
 		    
 		    if( $.isFunction(searchColumnData.searchHandler) ) {
 			searchColumnData.searchHandler(value, oldValue, dataIndex, searchColumnData, that.data, that.s.dt);
-		    } else {
+		    }
+		    else if(that.s.immediateSearch) {
 			that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
+		    }
+		    else {
+			this.chachedSearchableColumns.push(searchColumnData.dtColumnIndex);
 		    }
 		}
 	    },
@@ -289,6 +298,12 @@
 	
 	return searchColumnsDataKeys.indexOf(columnKey);
 //	return searchColumns.data[requestColumnIndex];
+    });
+    
+    DataTable.Api.register('columnSearch().isWholeSelected()', function() {
+	var columnSearch = this.settings()[0].columnSearch;
+	
+	return columnSearch.s.ctx.oAjaxData.isWholeSelected;
     });
     
     DataTable.Api.register('columnSearch().updateSearchColumn()', function(columnKey, options) {
@@ -326,9 +341,9 @@
 	    if(nTh) {
 	    	var field = $("select", nTh);
 	    	if(field) {
-                field.empty();
-                field.append( $.map(keys, function(key, index){ return '<option value="'+ key +'">'+ values[index] + '</option>' }) )
-                field.val(dt.column(searchColumnData.dtColumnIndex).search())
+	    	    field.empty();
+	    	    field.append( $.map(keys, function(key, index){ return '<option value="'+ key +'">'+ values[index] + '</option>' }) )
+	    	    field.val(dt.column(searchColumnData.dtColumnIndex).search())
 	    	}
 	    }
 	}
@@ -339,7 +354,9 @@
 	    return;
 	}
 	
-	new ColumnSearch( settings );
+	var init = settings.oInit.columnSearch;
+	
+	new ColumnSearch( settings, init );
     });
     
     $.fn.dataTable.ColumnSearch = ColumnSearch;
