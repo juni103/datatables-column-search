@@ -25,13 +25,13 @@ Other than boolean option
     </tr>
      <tr>
        <th>searchFieldValue</th>
-       <td><b>fn(element, searchedValue) | <string></b> This value will be visible in search field.<br/>
+       <td><b>fn(element, searchedValue) | string</b> This value will be visible in search field.<br/>
         Usage: columnSearch.searchFieldValue: 'visible string';
        </td>
     </tr>
      <tr>
        <th>valueToSearch</th>
-       <td><b>fn(columnSearchData) | <string></b> This value will be used in search on apply. The return value will also be shown in search field after search applied.<br/>
+       <td><b>fn(columnSearchData) | string</b> This value will be used in search on apply. The return value will also be shown in search field after search applied.<br/>
          The best use of this option is to use it with <b>searchFieldValue</b> because after applying the search you can update search field value which you want to see.<br/>
         Usage: columnSearch.valueToSearch: 'searchthis';
        </td>
