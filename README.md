@@ -24,7 +24,7 @@ Other than boolean option
      <tr>
        <th>html</th>
   <td><button>Search</button></td>
-       <td>To define custom markup for the type.</td>
+       <td>To define custom markup for the type in string form.</td>
     </tr>
      <tr>
        <th>immediateSearch</th>
@@ -111,6 +111,15 @@ Other than boolean option
 
 $('#example').DataTable({
   columns: [{
-  data: 'ID', columnsSearch: 
+  data: 'ID', columnsSearch: {}
 }]
 })
+
+### type
+columnsSearch: {type: "input"}
+
+### isSearchButton
+columnsSearch: {type: "button", isSearchButton: true}
+
+### html
+columnsSearch: {type: "button", isSearchButton: true, html: '<td><button>Search</button></td>'}
