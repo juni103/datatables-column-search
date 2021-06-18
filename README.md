@@ -9,35 +9,38 @@ To just apply the column search on a specific column you can set it to boolean:t
 
 Other than boolean option
 <table>
-  <thead><tr><th>Option</th><th>Description</th></tr></thead>
+  <thead><tr><th>Option</th><th>Value</th><th>Description</th></tr></thead>
   <tbody>
      <tr>
        <th>type</th>
-       <td>Type of the columnSearch to generate the input field based on that type.<br/>
-         types are <b>string | number | select | dateTime</b>
-       </td>
+       <td>string | number | select | dateTime</td>
+       <td>Type of the columnSearch to generate the input field based on that type.</td>
     </tr>
      <tr>
        <th>immediateSearch</th>
-       <td><b>boolean</b> To restrict immidiate colum search application on change or focus out.<br/>
-        Usage: columnSearch.immediateSearch: true|false
+       <td>true | false</td>
+       <td>To restrict immidiate colum search application on change or focus out.<br/>
+        Usage: columnSearch.immediateSearch: true | false
        </td>
     </tr>
      <tr>
        <th>searchFieldValue</th>
-       <td><b>fn(element, searchedValue) | string</b> This value will be visible in search field.<br/>
+       <td>fn(element, searchedValue) | string</td>
+       <td>This value will be visible in search field.<br/>
         Usage: columnSearch.searchFieldValue: 'visible string';
        </td>
     </tr>
      <tr>
        <th>valueToSearch</th>
-       <td><b>fn(columnSearchData) | string</b> This value will be used in search on apply. The return value will also be shown in search field after search applied.<br/>
+       <td>fn(columnSearchData) | string</td>
+       <td>This value will be used in search on apply. The return value will also be shown in search field after search applied.<br/>
          The best use of this option is to use it with <b>searchFieldValue</b> because after applying the search you can update search field value which you want to see.<br/>
         Usage: columnSearch.valueToSearch: 'searchthis';
        </td>
     </tr>
      <tr>
        <th>className</th>
+       <td></td>
        <td><b>string</b> Css class name which will be set on the search field;
        </td>
     </tr>
