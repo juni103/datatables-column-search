@@ -13,8 +13,18 @@ Other than boolean option
   <tbody>
      <tr>
        <th>type</th>
-       <td>string | number | select | dateTime</td>
-       <td>Type of the columnSearch to generate the input field based on that type.</td>
+       <td>string | number | select | dateTime | button</td>
+       <td>Type of the columnSearch to generate the input field based on that type.</br> For the button type the button will be rendered instead of a field.</td>
+    </tr>
+     <tr>
+       <th>isSearchButton</th>
+       <td>true | false</td>
+       <td>For the button type, if it is true on clicking this button the search will be applied.</td>
+    </tr>
+     <tr>
+       <th>html</th>
+  <td><button>Search</button></td>
+       <td>To define custom markup for the type.</td>
     </tr>
      <tr>
        <th>immediateSearch</th>
@@ -84,3 +94,11 @@ Other than boolean option
     </tr>
   </tbody>
 </table>
+
+## Options Usage
+
+$('#example').DataTable({
+  columns: [{
+  data: 'ID', columnsSearch: 
+}]
+})
