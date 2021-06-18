@@ -92,6 +92,18 @@ Other than boolean option
          <b>ex:</b> dataTable.columnSearch().updateSearchColumn(<columnDataSrc>, ["All", "Option1", "Option2", "Option3"])
        </td>
     </tr>
+     <tr>
+       <th>onApplyFilter</th>
+       <td><b>input params: (event, columnSearchData)</b></br>
+         This function can be used after applying the search for the button type search button.
+       </td>
+    </tr>
+     <tr>
+       <th>onChangeAnyField</th>
+       <td><b>input params: (event, eventColumnProps, searchColumnProps, searchColumnsData)</b></br>
+         This callback will be called on input change event.
+       </td>
+    </tr>
   </tbody>
 </table>
 
