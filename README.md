@@ -36,6 +36,11 @@ Other than boolean option
         Usage: columnSearch.valueToSearch: 'searchthis';
        </td>
     </tr>
+     <tr>
+       <th>className</th>
+       <td><b>string</b> Css class name which will be set on the search field;
+       </td>
+    </tr>
   </tbody>
 </table>
 
