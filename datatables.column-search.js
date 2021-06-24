@@ -52,6 +52,63 @@
 	this.init();
     }
     
+    function getColumnSearchValue(columnSearchData, dt) {
+	var searchedValue = dt.column(columnSearchData.dtColumnIndex).search();
+	
+	if(columnSearchData.searchValue) {
+	    if($.isFunction(columnSearchData.searchValue)) {
+		return columnSearchData.searchValue(searchedValue);
+	    } else {
+		return columnSearchData.searchValue;
+	    }
+	}
+	
+	return searchedValue;
+    }
+    
+    function calculateColumnSearchProps(instance, $searchHeader) {
+	var instanceS = instance.s,
+		ctx = instanceS.ctx,
+		hasColumnSearch = false;
+	
+	if(!$searchHeader) {
+	    $searchHeader = $('.dt-column-search', publishTable.context[0].nTHead);
+	    $searchHeader.empty();
+	}
+	
+	instanceS.dt.columns(":visible").every(function(column, row, index) {
+	    var $columnSearchHeader = $('<th class="border-left-0"/>');
+	    $searchHeader.append($columnSearchHeader);
+	   
+	    if(ctx.aoColumns[column].columnSearch) {
+		hasColumnSearch = true;
+		
+		var columnProps = {};
+		
+		if(typeof ctx.aoColumns[column].columnSearch !== "boolean") {
+		    $.extend(columnProps, ctx.aoColumns[column].columnSearch);
+		}
+		
+		columnProps.idx			= index;
+		columnProps.dtColumnIndex	= column;
+		columnProps.type 		= columnProps.type ? columnProps.type : "string";
+		columnProps.nTh			= $columnSearchHeader;
+		columnProps.mData		= ctx.aoColumns[column].mData;
+		
+		if(!instance.data) {
+		    instance.data = [];
+		    instance.indexes = [];
+		}
+		
+		instance.indexes.push(column)
+		instance.data.push(columnProps);
+		instance.renderField(column);
+	    }
+	});
+	
+	return hasColumnSearch;
+    }
+    
     ColumnSearch.prototype = {
 	    "init": function(){
 		var that = this,
@@ -66,51 +123,62 @@
 		    $searchHeader.empty();
 		}
 		
-		var hasColumnSearch = false;
-		
-		dt.columns(":visible").every(function(column, row, index){
-		    var $columnSearchHeader = $('<th class="border-left-0"/>');
-		    $searchHeader.append($columnSearchHeader);
-		   
-		    if(ctx.aoColumns[column].columnSearch) {
-			hasColumnSearch = true;
-			
-			var columnProps 	= {};
-			
-			if(typeof ctx.aoColumns[column].columnSearch !== "boolean") {
-			    $.extend(columnProps, ctx.aoColumns[column].columnSearch);
-			}
-			
-			columnProps.idx			= index;
-			columnProps.dtColumnIndex	= column;
-			columnProps.type 		= columnProps.type ? columnProps.type : "string";
-			columnProps.nTh			= $columnSearchHeader;
-			columnProps.mData		= ctx.aoColumns[column].mData;
-			
-			if(!that.data) {
-			    that.data = [];
-			    that.indexes = [];
-			}
-			
-			that.indexes.push(column)
-			that.data.push(columnProps);
-			that.renderField(column);
-		    }
-		});
+		var hasColumnSearch = calculateColumnSearchProps(that, $searchHeader);
 		
 		if(hasColumnSearch) {
 //		    $(ctx.nTHead).prepend($searchHeader);
-		    $(ctx.nTHead.lastChild).before($searchHeader);
+		    $(ctx.nTHead.lastElementChild).before($searchHeader);
 		    
 		    //set indexes for references
 		    that.iDisplayIndexes = that.pluck("idx");
 		    that.iDTColumnIndexes = that.pluck("dtColumnIndex");
-		    that.chachedSearchableColumns = []
+		    that.chachedSearchableColumns = [];
+		    that.chachedSearchableValues = {};
 		    
 		    $(ctx.nTableWrapper).on("change", 'thead tr.dt-column-search th input[type="text"], thead tr.dt-column-search th input[type="number"], thead tr.dt-column-search th select', function(e) {
 			that.onInputChangeEvent(e);
 		    })
+		    
+		    $(ctx.nTableWrapper).on("click", 'thead tr.dt-column-search th button', function(e) {
+			if(that.s.filterButton && that.s.filterButton.index === $(this).index()) {
+			    if(that.s.filterButton.action) {
+				that.s.filterButton.action( e, that.chachedSearchableValues, dt, that.data );
+			    } else {
+				if(that.chachedSearchableValues) {
+				    $.each(that.chachedSearchableValues, function(key, value) {
+					key = parseInt(key);
+
+					var columnData = that.data[that.indexes.indexOf(key)];
+					
+					value = columnData.valueToSearch ? ($.isFunction(columnData.valueToSearch) ? columnData.valueToSearch(columnData) : columnData.valueToSearch) : value;
+					
+//					dt.column(key).search(value, (columnData["type"] === "string"));
+					dt.column(key).search(value, (columnData.regex ? columnData.regex : false));
+				    });
+				    
+				    dt.columns().draw();
+				}
+			    }
+			    
+			    if($.isFunction(that.data[that.s.filterButton.index].onApplyFilter)) {
+				that.data[that.s.filterButton.index].onApplyFilter(e, that.data[that.s.filterButton.index]);
+			    }
+			}
+//			console.log("Apply Search...");
+		    })
 		}
+		
+		dt.on("draw.dt", function(){
+		    if(that.s.ctx.bInitialised) {
+			that.setSearchFieldsValue();
+		    }
+		})
+		
+		dt.on("column-visibility.dt", function(e, settings, colIdx, state){
+//		    var currentColProps = settings.aoColumns[column];
+		    
+		    calculateColumnSearchProps(that);
+		})
 		
 		if(hasColumnSearch && ctx.oInit.fixedColumns) {
 		    dt.on("draw.dt.fixedColumns", function(){
@@ -145,11 +213,26 @@
 					}
 					var fixedSearchColumn = $("th", $searchHeader).eq(visibleColumnIndex).clone(true, false);
 					
-					$('input', fixedSearchColumn).attr('data-old-value', this.s.dt.aoPreSearchCols[i]["sSearch"]);
-					
 					if(that.indexes.includes(i)) {
-					    if(fixedSearchColumn.children().length) {
-						fixedSearchColumn.children().val( that.s.dt.column(i).search() )
+					    var searchColumnProps = that.data[that.indexes.indexOf(i)];
+					    
+					    if(searchColumnProps.type !== "button") {
+						if(that.chachedSearchableValues && that.chachedSearchableValues[i]) {
+						    $('input', fixedSearchColumn).attr('data-old-value', that.chachedSearchableValues[i]);
+						}
+						else {
+						    $('input', fixedSearchColumn).attr('data-old-value', this.s.dt.aoPreSearchCols[i]["sSearch"]);
+						}
+						
+						if(fixedSearchColumn.children().length) {
+						    if(that.chachedSearchableValues && that.chachedSearchableValues[i]) {
+							fixedSearchColumn.children().val( that.chachedSearchableValues[i] )
+						    }
+						    else {
+							fixedSearchColumn.children().val( getColumnSearchValue(searchColumnProps, that.s.dt) )
+						    }
+						    
+						}
 					    }
 					    
 					    that.data[that.indexes.indexOf(i)]["fixedNode"] = fixedSearchColumn.get(0);
@@ -219,27 +302,109 @@
 			field.append( $.map(keys, function(key, index){ return '<option value="'+ key +'">'+ values[index] + '</option>' }) )
 		    }
 		}
-		
-		if(field) {
-//		    field.attr("style", "width: 100%");
-		    var fieldValue = dt.column(columnSearchData.dtColumnIndex).search();
+		else if(columnType === "button") {
+		    var buttonMarkup = '<button />';
 		    
-		    field.addClass('form-control h-auto p-1');
-		    field.attr('data-old-value', fieldValue);
-		    field.val(fieldValue);
+		    if(columnSearchData.html) {
+			buttonMarkup = columnSearchData.html;
+		    }
+		    
+		    field = $(buttonMarkup);
+		    
+		    if(columnSearchData.isSearchButton) {
+			that.s.filterButton = {};
+
+			that.s.filterButton.html    = buttonMarkup;
+			that.s.filterButton.element = field;
+			that.s.filterButton.index   = columnSearchData.idx;
+			that.s.filterButton.dtIndex = columnSearchData.dtColumnIndex;
+			
+			if($.isFunction(columnSearchData.action)) {
+			    that.s.filterButton.action = columnSearchData.action;
+			}
+		    }
+		    
+		    that.s.immediateSearch = false;
+		}
+		
+		if(field && columnType !== "button") {
+//		    field.attr("style", "width: 100%");
+		    that.setSearchFieldValue(columnSearchData, field);
 
 		    if(columnType !== "select") {
-			field.addClass('form-control h-auto p-1 pl-2 pr-2');
 			field.attr("placeholder", ctx.aoColumns[columnSearchData.dtColumnIndex]["sTitle"])
+		    }
+		    
+		    if(columnSearchData.className) {
+			field.addClass(columnSearchData.className);
 		    }
 		}
 		
+		if(columnSearchData.attributes) {
+		    $.each(columnSearchData.attributes, function(k,v){
+			field.attr(k, v);
+		    })
+		}
+		
+		if($.isFunction(columnSearchData.onChangeAnyField)) {
+		    if(!that.s.onChangeAnyFieldEvents) {
+			that.s.onChangeAnyFieldEvents = [];
+		    }
+		    
+		    that.s.onChangeAnyFieldEvents.push({"dtIndex": columnSearchData.dtColumnIndex, "event": columnSearchData.onChangeAnyField});
+		}
+		
 		columnSearchData.nTh.html(field);
+		columnSearchData.searchField = field;
 		that.data[index].type = columnType;
 		
 		if($.isFunction(columnSearchData.onFieldCreated)) {
-		    columnSearchData.onFieldCreated(field, dt.column(columnSearchData.dtColumnIndex).search());
+		    if(columnType !== "button") {
+			columnSearchData.onFieldCreated(field, getColumnSearchValue(columnSearchData, dt));
+		    }
+		    else {
+			columnSearchData.onFieldCreated(field);
+		    }
 		}
+	    },
+	    
+	    "setSearchFieldsValue": function() {
+		var that = this,
+			dt = this.s.dt,
+			ctx = this.s.ctx,
+			data = this.data;
+		
+		if(data) {
+		    for(var i = 0; i < data.length; i++) {
+			if(data["type"] != "button") {
+			    var columnSearchData = data[i];
+			    
+			    that.setSearchFieldValue(columnSearchData, columnSearchData.searchField);
+			}
+		    }
+		}
+	    },
+	    
+	    "setSearchFieldValue": function(columnSearchData, field) {
+		var dt = this.s.dt,
+			fieldValue = getColumnSearchValue(columnSearchData, dt);
+		
+		
+		
+		if(!field && columnSearchData.searchField) {
+		    field = columnSearchData.searchField;
+		}
+		
+		if(field && typeof field.data("oldValue") !== "undefined") {
+		    field.data("oldValue", fieldValue);
+		}
+		
+		if(columnSearchData.searchFieldValue) {
+		    fieldValue = ($.isFunction(columnSearchData.searchFieldValue) ? columnSearchData.searchFieldValue(field, fieldValue) : columnSearchData.searchFieldValue);
+		}
+		
+		field.attr('data-old-value', fieldValue);
+		field.val(fieldValue);
 	    },
 	    
 	    "onInputChangeEvent": function(e) {
@@ -250,19 +415,19 @@
 		    dataIndex 	= that.iDisplayIndexes.indexOf(index),
 		    searchColumnData = that.data[dataIndex],
 		    oldValue 	= $el.data('oldValue'),
-		    isValueChangesd = true;
+		    isValueChanged = true;
 		
 		if($.isFunction(searchColumnData.valueOnChange)) {
 		    value = searchColumnData.valueOnChange(value, e, searchColumnData);
 		}
 		
 		if( $.isFunction(searchColumnData.onChange) ) {
-		    isValueChangesd = searchColumnData.onChange(value, e, searchColumnData);
+		    isValueChanged = searchColumnData.onChange(value, e, searchColumnData);
 		} else {
-		    isValueChangesd = (oldValue !== value);
+		    isValueChanged = (oldValue !== value);
 		}
 		
-		if(isValueChangesd) {
+		if(isValueChanged) {
 		    $el.data('oldValue', value);
 		    $('input', searchColumnData.nTh).val(value);
 		    
@@ -270,10 +435,21 @@
 			searchColumnData.searchHandler(value, oldValue, dataIndex, searchColumnData, that.data, that.s.dt);
 		    }
 		    else if(that.s.immediateSearch) {
-			that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
+//			that.s.dt.column( searchColumnData.dtColumnIndex ).search( value, (searchColumnData.type === "string") ).draw();
+			that.s.dt.column( searchColumnData.dtColumnIndex ).search(value, (searchColumnData.regex ? searchColumnData.regex : false)).draw();
 		    }
 		    else {
-			this.chachedSearchableColumns.push(searchColumnData.dtColumnIndex);
+			if(that.s.onChangeAnyFieldEvents) {
+			    for(var i = 0; i < that.s.onChangeAnyFieldEvents.length; i++) {
+				that.s.onChangeAnyFieldEvents[i].event(e, that.data[that.indexes.indexOf(that.s.onChangeAnyFieldEvents[i].dtIndex)], searchColumnData, that.data);
+			    }
+			}
+			
+			if(!this.chachedSearchableColumns.includes(searchColumnData.dtColumnIndex)) {
+			    this.chachedSearchableColumns.push(searchColumnData.dtColumnIndex);
+			}
+			
+			this.chachedSearchableValues[searchColumnData.dtColumnIndex] = value;
 		    }
 		}
 	    },
@@ -304,6 +480,26 @@
 	var columnSearch = this.settings()[0].columnSearch;
 	
 	return columnSearch.s.ctx.oAjaxData.isWholeSelected;
+    });
+    
+    DataTable.Api.register('columnSearch.resetCache()', function() {
+	var columnSearch = this.settings()[0].columnSearch;
+	
+	columnSearch.chachedSearchableColumns = [];
+	columnSearch.chachedSearchableValues = {};
+    });
+    
+    DataTable.Api.register('columnSearch.columnSearchData()', function(key) {
+	var columnSearch = this.settings()[0].columnSearch;
+	
+	if(typeof key === "number") {
+	    return columnSearch.data[key];
+	}
+	else if(typeof key === "string") {
+	    return columnSearch.data[ columnSearch.pluck("mData").indexOf(key) ];
+	}
+	
+	return columnSearch.data;
     });
     
     DataTable.Api.register('columnSearch().updateSearchColumn()', function(columnKey, options) {
@@ -343,7 +539,7 @@
 	    	if(field) {
 	    	    field.empty();
 	    	    field.append( $.map(keys, function(key, index){ return '<option value="'+ key +'">'+ values[index] + '</option>' }) )
-	    	    field.val(dt.column(searchColumnData.dtColumnIndex).search())
+	    	    field.val(getColumnSearchValue(searchColumnData, dt))
 	    	}
 	    }
 	}
