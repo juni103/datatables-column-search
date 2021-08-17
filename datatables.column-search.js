@@ -77,7 +77,11 @@
 	}
 	
 	instanceS.dt.columns(":visible").every(function(column, row, index) {
-	    var $columnSearchHeader = $('<th class="border-left-0"/>');
+	    var calssName = "border-left-0 " + ctx.aoColumns[column].sClass,
+	    	$columnSearchHeader = $('<th class="'+ calssName +'"/>');
+	    
+	    $columnSearchHeader.removeClass("sorting")
+	    
 	    $searchHeader.append($columnSearchHeader);
 	   
 	    if(ctx.aoColumns[column].columnSearch) {
